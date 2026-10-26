@@ -252,7 +252,7 @@ function renderResults() {
         <span class="code">${esc(s.code)}</span>
         <span class="dx">${esc(s.diagnosis)}</span>
         <span class="chapter">${esc(chapterOf(s.code))}</span>
-        <span class="meter-row" title="${esc(meterTitle)}"><span class="meter"><span style="width:0" data-w="${Math.max(2, s.score * 100).toFixed(1)}%"></span></span><span class="meter-label">${meterText}</span></span>
+        <span class="meter-row" title="${esc(meterTitle)}"><span class="meter"><span data-w="${Math.max(0.02, s.score).toFixed(3)}"></span></span><span class="meter-label">${meterText}</span></span>
         <span class="votes">
           <span class="vote tfidf${s.rank_tfidf === 1 ? " first" : ""}">TF-IDF #${s.rank_tfidf}</span>
           <span class="vote pubmed${s.rank_pubmedbert === 1 ? " first" : ""}">PubMedBERT #${s.rank_pubmedbert}, ${pct(s.prob_pubmedbert)}</span>
@@ -261,7 +261,8 @@ function renderResults() {
       <button type="button" class="accept" data-accept="${esc(s.code)}">Accept</button>
     </li>`;
   }).join("");
-  requestAnimationFrame(() => $$(".meter span[data-w]").forEach((el) => { el.style.width = el.dataset.w; }));
+  void $("#suggestions").offsetWidth;  // commit the empty bars so the fill animates
+  $$(".meter span[data-w]").forEach((el) => { el.style.transform = `scaleX(${el.dataset.w})`; });
 
   renderEvidencePanel();
 
@@ -545,7 +546,7 @@ const OCR_STEPS = {
 };
 function onOcrProgress(m) {
   $("#ocrStatus").textContent = `${OCR_STEPS[m.status] || "Working"} ${m.progress ? pct(m.progress) : ""}`.trim();
-  $("#ocrBar").style.width = pct(m.status === "recognizing text" ? m.progress : (m.progress || 0) * 0.3);
+  $("#ocrBar").style.transform = `scaleX(${m.status === "recognizing text" ? m.progress : (m.progress || 0) * 0.3})`;
 }
 
 async function runOcr(image) {
@@ -567,7 +568,7 @@ async function runOcr(image) {
     $("#ocrText").value = text;
     $("#ocrUse").disabled = !text;
     $("#ocrStatus").textContent = text ? `Read ${words(text)} words (OCR confidence ${Math.round(data.confidence)}%). Check the text, then use it.` : "No text found. Try a sharper, well-lit photo.";
-    $("#ocrBar").style.width = "100%";
+    $("#ocrBar").style.transform = "scaleX(1)";
   } catch (err) {
     $("#ocrStatus").textContent = "Text recognition failed. Try another photo.";
     console.error(err);
