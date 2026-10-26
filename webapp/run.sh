@@ -6,12 +6,12 @@ cd "$(dirname "$0")"
 
 if [ ! -x .venv/bin/python ]; then
   PY=""
-  for candidate in python3.13 python3.12 python3.11 python3.10 python3; do
-    if command -v "$candidate" >/dev/null && "$candidate" -c 'import sys; sys.exit(sys.version_info < (3, 10))'; then
+  for candidate in python3.13 python3.12 python3; do
+    if command -v "$candidate" >/dev/null && "$candidate" -c 'import sys; sys.exit(sys.version_info < (3, 12))'; then
       PY="$candidate"; break
     fi
   done
-  [ -n "$PY" ] || { echo "Python 3.10 or newer is required."; exit 1; }
+  [ -n "$PY" ] || { echo "Python 3.12 or newer is required (https://www.python.org/downloads/)."; exit 1; }
   echo "Setting up the environment with $PY (first run only, a few minutes)..."
   "$PY" -m venv .venv
   .venv/bin/pip install --quiet --upgrade pip

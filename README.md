@@ -28,24 +28,45 @@ Machine learning and explainable NLP that suggest an ICD-10-CM diagnosis code fo
 
 When TF-IDF and PubMedBERT agree they are right 72% of the time; when they disagree, only 50%. The app flags those notes for review.
 
-## Run the web app
+## Clone and run
 
-macOS or Linux with Python 3.10 or newer:
+### What you need
+
+- [Git](https://git-scm.com/downloads) and **Python 3.12 or 3.13** ([python.org](https://www.python.org/downloads/)). Check with `python3 --version`.
+- About 2 GB of free disk space and an internet connection the first time. The setup downloads the Python packages and the PubMedBERT model (about 450 MB) once; after that the app also works offline.
+
+### macOS or Linux
 
 ```bash
-cd webapp
+git clone https://github.com/ATG-AVI/icd10-code-prediction.git
+cd icd10-code-prediction/webapp
 ./run.sh
 ```
 
-The first run creates a virtual environment, installs the dependencies (a few minutes) and trains the models if they are missing (about 1 minute). It then opens http://127.0.0.1:8000. On this Mac everything is already installed and trained, so it starts in a few seconds.
+The first run takes a few minutes. It creates a virtual environment in `webapp/.venv` and installs the packages, then starts the app and opens http://127.0.0.1:8000 in your browser. The trained models are already in the repository, so nothing has to be trained. Later runs start in a few seconds with the same `./run.sh`. Press `Ctrl+C` in the terminal to stop the app.
 
-Windows: in `webapp`, run `python -m venv .venv`, then `.venv\Scripts\pip install -r requirements.txt`, `.venv\Scripts\python train.py`, and `.venv\Scripts\python app.py`.
+### Windows (PowerShell)
 
-The fonts load from Google Fonts. Everything else, including OCR, works offline once the models have been downloaded.
+```powershell
+git clone https://github.com/ATG-AVI/icd10-code-prediction.git
+cd icd10-code-prediction\webapp
+py -3.12 -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\python app.py
+```
 
-## Run the notebook
+Then open http://127.0.0.1:8000. Next time, only the last command is needed (run it from the `webapp` folder).
 
-Upload `ICD10_Code_Prediction_Final.ipynb` to Google Colab and choose Runtime → Run all (about 5-10 minutes on CPU).
+### The notebook
+
+- **In Google Colab, no install:** [open the notebook in Colab](https://colab.research.google.com/github/ATG-AVI/icd10-code-prediction/blob/main/ICD10_Code_Prediction_Final.ipynb), then choose Runtime → Run all (about 5-10 minutes on CPU).
+- **Locally:** open `ICD10_Code_Prediction_Final.ipynb` in Jupyter or VS Code. Its first cell installs what it needs.
+
+### If something goes wrong
+
+- **"Python 3.12 or newer is required":** install Python 3.12 or 3.13, then run `./run.sh` again.
+- **Port 8000 already in use:** another app is using that port. Stop it, or change `port=8000` at the bottom of `webapp/app.py`.
+- **Retrain the models** (optional, about 1 minute): delete `webapp/model/models.joblib` and run `./run.sh`, or run `.venv/bin/python train.py` inside `webapp`.
 
 ## Demo script for the presentation (about 5 minutes)
 
