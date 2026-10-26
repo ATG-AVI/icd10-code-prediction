@@ -1,0 +1,12 @@
+# Python environment (recreated by webapp/run.sh)
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Coding decisions saved by the running app
+webapp/records.db
+
+# Editor and tool state
+.DS_Store
+.impeccable/

@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Chart2Code</title>
+  <meta name="description" content="Suggests ICD-10-CM diagnosis codes for clinical notes and highlights the evidence. Academic demo.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='5' y='3' width='22' height='26' rx='3' fill='%230d6b66'/%3E%3Crect x='9' y='9' width='14' height='3' rx='1.5' fill='%23ffe94d'/%3E%3Crect x='9' y='15' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='9' y='20' width='12' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;600&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#code" aria-label="Chart2Code home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="3" width="22" height="26" rx="3" class="brand-page"/><rect x="9" y="9" width="14" height="3" rx="1.5" class="brand-mark"/><rect x="9" y="15" width="10" height="2" rx="1" class="brand-line"/><rect x="9" y="20" width="12" height="2" rx="1" class="brand-line"/></svg>
+      <span>Chart2Code</span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="#code" data-view="code">Code a note</a>
+      <a href="#records" data-view="records">Coded records <span class="badge" id="recordCount">0</span></a>
+      <a href="#codes" data-view="codes">Supported codes</a>
+      <a href="#about" data-view="about">How it works</a>
+    </nav>
+    <button class="icon-button" id="themeToggle" type="button" aria-label="Switch to dark theme">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+    </button>
+  </header>
+
+  <main>
+    <!-- ============================================================ CODE A NOTE -->
+    <section class="view" id="view-code" aria-labelledby="codeTitle">
+      <div class="intro">
+        <h1 id="codeTitle">Turn a clinical note into an ICD-10 code</h1>
+        <p>Paste, upload, scan or dictate a case history. Chart2Code ranks the most likely ICD-10-CM codes and highlights the words behind each one, so you can check the evidence before you accept a code.</p>
+      </div>
+
+      <div class="workspace">
+        <article class="sheet" id="sheet" aria-labelledby="noteTitle">
+          <div class="sheet-head">
+            <div class="sheet-title">
+              <h2 id="noteTitle">Clinical note</h2>
+              <p class="source-line" id="sourceLine">Type or paste a note to begin.</p>
+            </div>
+            <div class="tools" role="toolbar" aria-label="Add a note">
+              <button type="button" class="tool" id="sampleBtn" title="Load a case the models never saw during training">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h5"/></svg>Load test case
+              </button>
+              <label class="tool" title="Upload a .txt, .pdf or photo of a note">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>Upload
+                <input type="file" id="fileInput" accept=".txt,.pdf,text/plain,application/pdf,image/*" hidden>
+              </label>
+              <button type="button" class="tool" id="scanBtn" title="Read a printed or handwritten-typed page with your camera">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/></svg>Scan
+              </button>
+              <button type="button" class="tool" id="dictateBtn" hidden title="Speak the note; your browser converts speech to text">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Dictate</span>
+              </button>
+              <button type="button" class="tool quiet" id="clearBtn">Clear</button>
+            </div>
+          </div>
+
+          <div class="sample-banner" id="sampleBanner" hidden>
+            <p id="sampleText"></p>
+            <button type="button" class="link-button" id="revealBtn">Reveal true code</button>
+          </div>
+
+          <div class="editor" id="editor">
+            <div class="backdrop" id="backdrop" aria-hidden="true"></div>
+            <textarea id="note" spellcheck="false" aria-label="Clinical note text" placeholder="Example: A 34-year-old woman presented with palpitations, heat intolerance and weight loss. Examination showed a diffuse goitre and proptosis. TSH was suppressed and free T4 elevated..."></textarea>
+          </div>
+          <p class="dictation-live" id="dictationLive" hidden></p>
+
+          <div class="sheet-foot">
+            <span class="note-stats" id="noteStats"></span>
+            <div class="legend" id="legend">
+              <label class="switch"><input type="checkbox" id="showEvidence" checked> Show evidence</label>
+              <span class="key"><mark class="for" style="--a:.8">supports</mark> <mark class="against" style="--a:.8">points away from</mark> <strong class="code-ref" id="legendCode"></strong></span>
+            </div>
+          </div>
+          <div class="drop-hint" aria-hidden="true">Drop the file to read it</div>
+        </article>
+
+        <aside class="panel" id="panel" aria-labelledby="suggestTitle">
+          <div class="panel-head">
+            <h2 id="suggestTitle">Suggested codes</h2>
+            <div class="segmented" role="radiogroup" aria-label="Model">
+              <button type="button" role="radio" data-model="combined" aria-checked="true" title="Rank fusion of both models">Combined</button>
+              <button type="button" role="radio" data-model="tfidf" aria-checked="false" title="TF-IDF + Logistic Regression">TF-IDF</button>
+              <button type="button" role="radio" data-model="pubmedbert" aria-checked="false" title="PubMedBERT embeddings + Logistic Regression">PubMedBERT</button>
+            </div>
+          </div>
+
+          <div class="panel-body" id="panelBody" aria-live="polite">
+            <p class="empty" id="emptyPanel">Suggestions appear here once the note has at least five words.</p>
+            <div id="results" hidden>
+              <div class="agreement" id="agreement"></div>
+              <ol class="suggestions" id="suggestions"></ol>
+
+              <form class="assign" id="assignForm">
+                <label for="assignInput">None of these? Assign a different code</label>
+                <div class="assign-row">
+                  <input id="assignInput" list="allCodes" autocomplete="off" placeholder="Search by code or diagnosis">
+                  <button type="submit" class="secondary">Assign code</button>
+                </div>
+                <datalist id="allCodes"></datalist>
+              </form>
+
+              <section class="terms" aria-labelledby="termsTitle">
+                <h3 id="termsTitle">Strongest words for <span class="code-ref" id="termsCode"></span></h3>
+                <div class="chips" id="terms"></div>
+              </section>
+
+              <section class="similar" aria-labelledby="similarTitle">
+                <h3 id="similarTitle">Most similar training cases</h3>
+                <ol id="similar"></ol>
+              </section>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ============================================================ RECORDS -->
+    <section class="view" id="view-records" aria-labelledby="recordsTitle" hidden>
+      <div class="intro row">
+        <div>
+          <h1 id="recordsTitle">Coded records</h1>
+          <p>Every note you accept or assign a code to is saved here, with what the model suggested and what you chose.</p>
+        </div>
+        <a class="button secondary" href="/api/records.csv" id="exportBtn">Export CSV</a>
+      </div>
+      <div class="stat-row" id="recordStats"></div>
+      <div class="table-wrap" id="recordsTableWrap">
+        <table class="records">
+          <thead><tr><th>Saved</th><th>Source</th><th>Note</th><th>Suggested</th><th>Final code</th><th>Review</th><th><span class="sr-only">Actions</span></th></tr></thead>
+          <tbody id="recordsBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="recordsEmpty" hidden>
+        <p>No coded notes yet. Load a test case, check the suggestions, then choose Accept to save your first record.</p>
+        <a class="button primary" href="#code">Code a note</a>
+      </div>
+    </section>
+
+    <!-- ============================================================ SUPPORTED CODES -->
+    <section class="view" id="view-codes" aria-labelledby="codesTitle" hidden>
+      <div class="intro">
+        <h1 id="codesTitle">Supported codes</h1>
+        <p>The models were trained on the <strong id="codeCount">58</strong> ICD-10-CM codes that have at least five cases in the dataset. For each code you can see how many training notes it had and the words the TF-IDF model learned to look for.</p>
+      </div>
+      <label class="search" for="codeSearch">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg>
+        <input id="codeSearch" type="search" placeholder="Filter by code, diagnosis or word, e.g. aorta">
+      </label>
+      <div id="codeGroups"></div>
+    </section>
+
+    <!-- ============================================================ HOW IT WORKS -->
+    <section class="view" id="view-about" aria-labelledby="aboutTitle" hidden>
+      <div class="intro">
+        <h1 id="aboutTitle">How it works</h1>
+        <p>Chart2Code is the web front end of an academic NLP project: <em>Automated ICD-10 Code Prediction from Clinical Notes Using Machine Learning and Explainable NLP</em>.</p>
+      </div>
+
+      <div class="about-grid">
+        <section class="about-block">
+          <h2>From note to code</h2>
+          <ol class="flow">
+            <li><strong>Read the note.</strong> Typed, pasted, dictated, uploaded as a PDF or text file, or scanned from a photo with on-device OCR (Tesseract).</li>
+            <li><strong>TF-IDF model.</strong> Counts informative words and word pairs, then a Logistic Regression scores all 58 codes. Its weights give the word-level evidence you see highlighted.</li>
+            <li><strong>PubMedBERT model.</strong> A biomedical sentence encoder turns the whole note into a 768-number vector; a second Logistic Regression scores the codes. The same vectors find the most similar training cases.</li>
+            <li><strong>Combine.</strong> Reciprocal rank fusion merges the two rankings. A code both models rank first gets a consensus of 100%.</li>
+            <li><strong>Flag disagreement.</strong> When the two models pick different codes, the note is flagged for careful review.</li>
+            <li><strong>Human decision.</strong> A coder accepts a suggestion or assigns another code. The decision is saved to Coded records.</li>
+          </ol>
+        </section>
+        <section class="about-block">
+          <h2>Data</h2>
+          <p><a href="https://huggingface.co/datasets/mkurman/clinical-case-icd10-diagnosis" target="_blank" rel="noopener">mkurman/clinical-case-icd10-diagnosis</a>: 1,798 de-identified case histories from open-access PubMed Central case reports, one ICD-10-CM code each, with the diagnosis removed from the text.</p>
+          <p>The app uses the 58 codes with at least five cases. Training used <span id="trainNotes">368</span> notes; the <span id="testNotes">92</span> held-out test notes are the ones you can load with <em>Load test case</em>, and no note from the same publication was used for training.</p>
+        </section>
+      </div>
+
+      <section class="about-block">
+        <h2>Measured accuracy</h2>
+        <div class="table-wrap">
+          <table class="metrics" id="metricsTable">
+            <thead><tr><th>Model</th><th>Test accuracy</th><th>Test top-3</th><th>Test top-5</th><th>Cross-validated accuracy</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="fine">Test columns: one held-out split of 92 notes. Cross-validated: mean and standard deviation over 15 publication-grouped folds (5 folds, 3 shuffles). A majority-class guess scores 7.6%.</p>
+        <p class="callout" id="agreeCallout"></p>
+      </section>
+
+      <section class="about-block">
+        <h2>Charts from the project notebook</h2>
+        <figure><img src="/figures/model_comparison.png" alt="Bar charts comparing accuracy, top-5 accuracy, macro F1 and weighted F1 for the baseline and three models." loading="lazy"><figcaption>Test-set performance of each model on both experiments.</figcaption></figure>
+        <figure><img src="/figures/cross_validation.png" alt="Horizontal bars of cross-validated accuracy and macro F1 with error bars for each model." loading="lazy"><figcaption>Cross-validated accuracy and macro F1, mean and standard deviation.</figcaption></figure>
+        <figure><img src="/figures/eda_overview.png" alt="Dataset overview charts: top codes, long tail of rare codes, note lengths, cases per ICD-10 chapter." loading="lazy"><figcaption>The dataset: 995 codes, most of them seen only once.</figcaption></figure>
+      </section>
+
+      <section class="about-block">
+        <h2>Limitations</h2>
+        <ul class="plain">
+          <li>Only 58 of roughly 70,000 ICD-10-CM codes are supported; any other diagnosis will be mapped to the closest supported code.</li>
+          <li>Codes in the dataset were assigned by an LLM and validated as billable codes, not audited by certified coders.</li>
+          <li>Published case reports are cleaner and more unusual than everyday hospital notes.</li>
+          <li>One principal code per note; real encounters usually need several codes.</li>
+          <li>Academic demo only. Not for clinical or billing use.</li>
+        </ul>
+      </section>
+    </section>
+  </main>
+
+  <footer class="footer">Academic demo. Not for clinical or billing use. Built with scikit-learn, sentence-transformers, FastAPI and Tesseract.js.</footer>
+
+  <!-- ============================================================ SCAN DIALOG -->
+  <dialog id="scanDialog" aria-labelledby="scanTitle">
+    <div class="dialog-head">
+      <h2 id="scanTitle">Scan a note</h2>
+      <button type="button" class="icon-button" id="scanClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="scan-body">
+      <div class="scan-source">
+        <div class="viewfinder" id="viewfinder">
+          <video id="camVideo" playsinline muted></video>
+          <canvas id="camCanvas" role="img" aria-label="Captured page" hidden></canvas>
+          <p class="viewfinder-hint" id="viewfinderHint">Start the camera and hold a printed note flat and well lit, or choose a photo.</p>
+        </div>
+        <div class="scan-actions">
+          <button type="button" class="secondary" id="camStart">Start camera</button>
+          <button type="button" class="primary" id="camCapture" disabled>Capture page</button>
+          <label class="button secondary">Choose photo<input type="file" id="photoInput" accept="image/*" capture="environment" hidden></label>
+          <button type="button" class="link-button" id="samplePhoto">Try a sample page</button>
+        </div>
+      </div>
+      <div class="scan-result">
+        <div class="ocr-progress" id="ocrProgress" hidden>
+          <div class="ocr-bar"><span id="ocrBar"></span></div>
+          <p id="ocrStatus">Preparing text recognition</p>
+        </div>
+        <label for="ocrText">Recognised text</label>
+        <textarea id="ocrText" rows="11" placeholder="Text read from the page appears here. Correct anything the scanner misread before using it."></textarea>
+        <button type="button" class="primary" id="ocrUse" disabled>Use this text</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script src="/static/vendor/tesseract/tesseract.min.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
